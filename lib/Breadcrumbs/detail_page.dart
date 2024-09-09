@@ -7,7 +7,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class DeviceDetailPage extends StatefulWidget {
   final Map<String, dynamic> device;
@@ -36,7 +39,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Future<void> _loadSavedLocation() async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/geolocator.php'),
+        Uri.parse('https://indoguna.info/Datatable/latlong.php'),
         body: {
           'id': widget.device['id'].toString(),
           'action': 'get_location',
@@ -48,14 +51,28 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       if (response.statusCode == 200) {
         if (response.body.isNotEmpty) {
           final data = json.decode(response.body);
-          final savedLatitude = double.tryParse(data['latitude'].toString());
-          final savedLongitude = double.tryParse(data['longitude'].toString());
+          print('Decoded JSON: $data'); // Debug print
 
-          setState(() {
-            latitude = savedLatitude;
-            longitude = savedLongitude;
-            isLoading = false;
-          });
+          // Parsing latitude and longitude
+          final savedLatitude =
+              double.tryParse(data['latitude']?.toString() ?? '');
+          final savedLongitude =
+              double.tryParse(data['longitude']?.toString() ?? '');
+          print(
+              'Parsed Latitude: $savedLatitude, Longitude: $savedLongitude'); // Debug print
+
+          if (savedLatitude != null && savedLongitude != null) {
+            setState(() {
+              latitude = savedLatitude;
+              longitude = savedLongitude;
+              isLoading = false;
+            });
+          } else {
+            setState(() {
+              isLoading = false;
+              errorMessage = 'Click Get Location';
+            });
+          }
         } else {
           setState(() {
             isLoading = false;
@@ -80,7 +97,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://192.168.252.28/Datatable/get_photos.php?id=${widget.device['id']}'),
+            'https://indoguna.info/Datatable/get_photos.php?id=${widget.device['id']}'),
       );
 
       print('Photos response: ${response.body}'); // Debug print
@@ -119,6 +136,9 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         latitude = position.latitude;
         longitude = position.longitude;
       });
+
+      print(
+          'Determined Latitude: $latitude, Longitude: $longitude'); // Debug print
     } catch (e) {
       print('Error determining position: $e');
     }
@@ -126,7 +146,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
   Future<void> _saveLocation() async {
     if (latitude == null || longitude == null) {
-      print('Error: Latitude or Longitude is null');
+      print('Error: Latitude atau Longitude adalah null');
       return;
     }
 
@@ -135,19 +155,24 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/geolocator.php'),
+        Uri.parse('https://indoguna.info/Datatable/geolocator.php'),
         body: {
           'id': widget.device['id'].toString(),
           'latitude': latitude.toString(),
           'longitude': longitude.toString(),
           'action': 'save_location',
         },
-      );
+      ).timeout(Duration(seconds: 10));
 
-      print('Save location response: ${response.body}'); // Debug print
+      print('Save location response: ${response.body}');
 
       if (response.statusCode == 200) {
-        print("Location saved successfully");
+        final jsonResponse = jsonDecode(response.body);
+        if (jsonResponse['status'] == 'success') {
+          print("Location saved successfully");
+        } else {
+          print("Error: ${jsonResponse['message']}");
+        }
       } else {
         print("Error saving location: ${response.body}");
       }
@@ -165,7 +190,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
       try {
         final response = await http.post(
-          Uri.parse('http://192.168.252.28/Datatable/upload_photo.php'),
+          Uri.parse('https://indoguna.info/Datatable/upload_photo.php'),
           body: {
             'id': widget.device['id'].toString(),
             'photo': base64Image,
@@ -189,7 +214,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Future<void> _deletePhoto(int index) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/delete_photo.php'),
+        Uri.parse('https://indoguna.info/Datatable/delete_photo.php'),
         body: {
           'id': widget.device['id'].toString(),
           'photoIndex': index.toString(),
@@ -208,6 +233,100 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       }
     } catch (e) {
       print('Error deleting photo: $e');
+    }
+  }
+
+  Future<void> _requestPermission(BuildContext context) async {
+    PermissionStatus status;
+
+    if (Platform.isAndroid) {
+      if (await Permission.storage.isGranted) {
+        // For Android versions below 33
+        status = await Permission.storage.request();
+      } else {
+        // For Android 33 and above, use the new media permissions
+        status = await Permission.mediaLibrary.request();
+      }
+    } else {
+      // Handle permissions for iOS or other platforms if necessary
+      status = await Permission.storage.request();
+    }
+
+    if (status.isGranted) {
+      print("Storage permission granted");
+    } else if (status.isDenied || status.isPermanentlyDenied) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Storage permission is required to save the QR code.'),
+          ),
+        );
+      }
+      if (status.isPermanentlyDenied) {
+        openAppSettings();
+      }
+    }
+  }
+
+  Future<void> _saveQRCode(BuildContext context) async {
+    await _requestPermission(context);
+
+    if (await Permission.storage.isGranted ||
+        await Permission.mediaLibrary.isGranted) {
+      try {
+        final qrValidationResult = QrValidator.validate(
+          data:
+              'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
+          version: QrVersions.auto,
+          errorCorrectionLevel: QrErrorCorrectLevel.L,
+        );
+
+        if (qrValidationResult.status == QrValidationStatus.valid) {
+          final qrCodeImage = QrPainter(
+            data:
+                'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
+            version: QrVersions.auto,
+            gapless: true,
+            color: const Color(0xFF000000),
+            emptyColor: const Color(0xFFFFFFFF),
+          );
+
+          final picData = await qrCodeImage.toImageData(200);
+          final buffer = picData!.buffer.asUint8List();
+
+          // Save to the external storage directory
+          final directory = await getExternalStorageDirectory();
+          final imagePath =
+              '${directory!.path}/qr_code_${Uri.encodeComponent(widget.device['id'].toString())}.png';
+          final file = File(imagePath);
+          await file.writeAsBytes(buffer);
+
+          // Copy to Downloads directory for broader access
+          final savedPath = await file.copy(
+              '/storage/emulated/0/Download/qr_code_${Uri.encodeComponent(widget.device['id'].toString())}.png');
+          final finalPath = savedPath.path;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('QR Code saved to $finalPath')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to generate QR Code')),
+          );
+        }
+      } catch (e) {
+        print('Error saving QR Code: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving QR Code: $e')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Storage permission is required to save the QR code.'),
+        ),
+      );
     }
   }
 
@@ -256,11 +375,11 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         return AlertDialog(
           title: Text('Scan this QR Code'),
           content: Container(
-            width: 200, // Set width for the QR code container
-            height: 200, // Set height for the QR code container
+            width: 200,
+            height: 200,
             child: QrImageView(
               data:
-                  'http://192.168.252.28/Datatable/get_devices.php?id=${widget.device['id']}',
+                  'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
               version: QrVersions.auto,
               size: 150.0,
             ),
@@ -270,6 +389,16 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               child: Text('Close'),
               onPressed: () {
                 Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Save QR Code'),
+              onPressed: () async {
+                await _saveQRCode(context); // Call the function with context
+
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
               },
             ),
           ],
@@ -282,7 +411,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.device['device_name']),
+        title: Text(
+            widget.device['name'] ?? 'Unknown Device'), // Handle null value
         actions: [
           IconButton(
             icon: Icon(Icons.qr_code),
@@ -296,7 +426,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             FlutterMap(
               options: MapOptions(
                 center: LatLng(latitude!, longitude!),
-                zoom: 13.0,
+                zoom: 17.0,
               ),
               children: [
                 TileLayer(
@@ -326,7 +456,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                 child: isLoading
                     ? CircularProgressIndicator()
                     : Text(
-                        errorMessage ?? 'Map Placeholder',
+                        errorMessage ?? 'Click get location',
                         style: TextStyle(fontSize: 18, color: Colors.grey[700]),
                       ),
               ),
@@ -348,7 +478,8 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              widget.device['device_name'],
+                              widget.device['name'] ??
+                                  'Unknown Device', // Handle null value
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -364,11 +495,19 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                         ],
                       ),
                       Text(
-                        'Device Category: ${widget.device['device_category'] ?? ''}',
+                        'Device Category: ${widget.device['device_category'] ?? ''}', // Handle null value
                         style: TextStyle(fontSize: 17),
                       ),
                       Text(
-                        'Location: ${widget.device['geolocation'] ?? ''}',
+                        'Location info: ${widget.device['location_info'] ?? ''}', // Handle null value
+                        style: TextStyle(fontSize: 17),
+                      ),
+                      Text(
+                        'Brand: ${widget.device['brand'] ?? ''}', // Handle null value
+                        style: TextStyle(fontSize: 17),
+                      ),
+                      Text(
+                        'IP Address: ${widget.device['ipaddress'] ?? ''}', // Handle null value
                         style: TextStyle(fontSize: 17),
                       ),
                       const SizedBox(height: 20),

@@ -48,7 +48,7 @@ class _BreadcrumbsPageState extends State<BreadcrumbsPage> {
       groupedOrganizations.forEach((group, organizations) {
         var filteredList = organizations
             .where((organization) =>
-                organization['Organization_Name'].toLowerCase().contains(query))
+                organization['Name'].toLowerCase().contains(query))
             .toList();
         if (filteredList.isNotEmpty) {
           tempFilteredOrganizations[group] = filteredList;
@@ -70,7 +70,7 @@ class _BreadcrumbsPageState extends State<BreadcrumbsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Organizations'),
+        title: const Text('Select Organizations'),
       ),
       body: Column(
         children: [
@@ -111,7 +111,7 @@ class _BreadcrumbsPageState extends State<BreadcrumbsPage> {
                         margin:
                             EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: ListTile(
-                          title: Text(organization['Organization_Name']),
+                          title: Text(organization['Name']),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -119,8 +119,7 @@ class _BreadcrumbsPageState extends State<BreadcrumbsPage> {
                                 builder: (context) => LocationsPage(
                                   organizationId:
                                       organization['OrganizationID'],
-                                  organizationName:
-                                      organization['Organization_Name'],
+                                  organizationName: organization['Name'],
                                 ),
                               ),
                             );

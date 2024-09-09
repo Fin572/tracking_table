@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     final response = await http.post(
-      Uri.parse('http://192.168.252.28/Datatable/login.php'),
+      Uri.parse('https://indoguna.info/Datatable/login.php'),
       body: {
         'username': _usernameController.text,
         'password': _passwordController.text,

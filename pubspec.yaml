@@ -53,10 +53,14 @@ dependencies:
   qr_code_scanner: ^1.0.1
   qr_flutter: ^4.1.0
   qr_image: ^1.0.0
-  path_provider: ^2.0.9
-  image_gallery_saver: ^1.7.1
-
+  path_provider: ^2.0.11
+  flutter_svg: ^1.1.6
+  permission_handler: ^11.3.1
+  flutter_barcode_scanner: ^2.0.0
+  image_gallery_saver: ^2.0.3
+  
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
   flutter_test:
     sdk: flutter
 
@@ -69,7 +73,10 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-
+flutter_launcher_icons:
+  image_path: "images/Logo_indoguna.png"
+  Android: true
+  Ios: true
 # The following section is specific to Flutter packages.
 flutter:
 

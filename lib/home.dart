@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:tracking_table/Breadcrumbs/detail_page.dart';
 import 'package:tracking_table/Breadcrumbs/login.dart';
-import 'package:tracking_table/Breadcrumbs/detail_page.dart'; // Import the detail page
+import 'package:http/http.dart' as http;
 
 class ProfilePage extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -14,7 +14,7 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+    
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -23,7 +23,7 @@ class ProfilePage extends StatelessWidget {
             children: [
               SizedBox(height: 16),
               Text(
-                user['username'],
+                user['name'],
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               Text(
@@ -63,7 +63,7 @@ class ProfilePage extends StatelessWidget {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => QRViewExample()),
+                    MaterialPageRoute(builder: (context) => QRScanPage()),
                   );
                 },
               ),
@@ -87,22 +87,104 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class QRViewExample extends StatefulWidget {
+class QRScanPage extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() => _QRViewExampleState();
+  _QRScanPageState createState() => _QRScanPageState();
 }
 
-class _QRViewExampleState extends State<QRViewExample> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  QRViewController? controller;
+class _QRScanPageState extends State<QRScanPage> {
+  String _scanResult = 'Unknown';
 
-  @override
-  void reassemble() {
-    super.reassemble();
-    if (Platform.isAndroid) {
-      controller!.pauseCamera();
+  Future<void> _startQRScan() async {
+    try {
+      String scanResult = await FlutterBarcodeScanner.scanBarcode(
+        '#ff6666', // Warna garis tepi saat scanning
+        'Cancel', // Tombol cancel
+        true, // Tampilkan garis
+        ScanMode.QR, // Mode QR
+      );
+
+      if (scanResult != '-1') {
+        setState(() {
+          _scanResult = scanResult;
+        });
+
+        await _fetchDeviceData(scanResult);
+      }
+    } catch (e) {
+      setState(() {
+        _scanResult = 'Failed to get the scan result.';
+      });
     }
-    controller!.resumeCamera();
+  }
+
+  Future<void> _fetchDeviceData(String qrData) async {
+    try {
+      // Parse QR data as URI to extract parameters
+      Uri uri = Uri.parse(qrData);
+      String? id = uri.queryParameters['id'];
+
+      if (id != null) {
+        // Prepare the URL for the request
+        final response = await http.get(
+          Uri.parse('https://indoguna.info/Datatable/get_devices.php?id=$id'),
+        );
+
+        if (response.statusCode == 200) {
+          // Log respons untuk memastikan apa yang diterima
+          print('Response body: ${response.body}');
+
+          // Parse response body dan casting
+          final dynamic jsonResponse = json.decode(response.body);
+
+          // Cek apakah jsonResponse adalah List atau Map
+          if (jsonResponse is List && jsonResponse.isNotEmpty) {
+            final Map<String, dynamic> device =
+                Map<String, dynamic>.from(jsonResponse[0]);
+
+            if (device != null && device['id'] != null) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DeviceDetailPage(device: device),
+                ),
+              );
+            } else {
+              _showError('No valid device data found with ID: $id');
+            }
+          } else if (jsonResponse is Map) {
+            final Map<String, dynamic> device =
+                Map<String, dynamic>.from(jsonResponse);
+
+            if (device != null && device['id'] != null) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DeviceDetailPage(device: device),
+                ),
+              );
+            } else {
+              _showError('No valid device data found with ID: $id');
+            }
+          } else {
+            _showError('No data returned from the server.');
+          }
+        } else {
+          _showError(
+              'Failed to fetch device details. Status Code: ${response.statusCode}');
+        }
+      } else {
+        _showError('Invalid QR code data.');
+      }
+    } catch (e) {
+      _showError('Error: ${e.toString()}');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -111,47 +193,18 @@ class _QRViewExampleState extends State<QRViewExample> {
       appBar: AppBar(
         title: Text('Scan QR Code'),
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            flex: 5,
-            child: QRView(
-              key: qrKey,
-              onQRViewCreated: _onQRViewCreated,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Scan result: $_scanResult'),
+            ElevatedButton(
+              onPressed: _startQRScan,
+              child: Text('Start QR scan'),
             ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Center(
-              child: Text('Scan a QR code'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  void _onQRViewCreated(QRViewController controller) {
-    this.controller = controller;
-    controller.scannedDataStream.listen((scanData) {
-      // Assuming the scanData contains device information
-      Map<String, dynamic> device = jsonDecode(scanData.code!);
-      controller.pauseCamera(); // Pause the camera to prevent multiple scans
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DeviceDetailPage(device: device),
-        ),
-      ).then((_) {
-        controller
-            .resumeCamera(); // Resume the camera when returning to the scan screen
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    controller?.dispose();
-    super.dispose();
   }
 }
