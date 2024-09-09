@@ -53,6 +53,8 @@ dependencies:
   qr_code_scanner: ^1.0.1
   qr_flutter: ^4.1.0
   qr_image: ^1.0.0
+  path_provider: ^2.0.9
+  image_gallery_saver: ^1.7.1
 
 dev_dependencies:
   flutter_test:
