@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:tracking_table/Ticketing/form.dart';
+import 'package:tracking_table/Ticketing/form_incident.dart';
 import 'package:tracking_table/navbar.dart';
 
-class TicketingApp extends StatelessWidget {
+class TicketingIncident extends StatelessWidget {
   final Map<String, dynamic> user;
   final int groupId;
   final List<dynamic> organizations;
 
-  const TicketingApp({
+  const TicketingIncident({
     Key? key,
     required this.user,
     required this.groupId,
@@ -44,7 +44,7 @@ class Ticketing extends StatefulWidget {
 }
 
 class _TicketingState extends State<Ticketing> {
-  static const List<(Color?, Color?, ShapeBorder?)> customizations =
+  static const List<(Color?, Color? background, ShapeBorder?)> customizations =
       <(Color?, Color?, ShapeBorder?)>[
     (null, null, null),
     (null, Colors.green, null),
@@ -53,14 +53,11 @@ class _TicketingState extends State<Ticketing> {
   ];
   int index = 0;
 
-  // Change formData to a List to hold multiple form submissions
-  List<Map<String, dynamic>> formDataList = [];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ticketing'),
+        title: const Text('Ticketing Incident'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -78,34 +75,14 @@ class _TicketingState extends State<Ticketing> {
           },
         ),
       ),
-      body: formDataList.isNotEmpty
-          ? ListView.builder(
-              itemCount: formDataList.length,
-              itemBuilder: (context, index) {
-                final formData = formDataList[index];
-                return ListTile(
-                  title: Text('Request: ${formData['title']}'),
-                  subtitle: Text('Description: ${formData['description']}'),
-                );
-              },
-            )
-          : const Center(child: Text('No data submitted!')),
+      body: const Center(child: Text('Incident!')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          // Receive form data after task is submitted
-          final result = await Navigator.push(
+        onPressed: () {
+          // Navigate to the IncidentTaskFormPage
+          Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => TaskFormPage(),
-            ),
+            MaterialPageRoute(builder: (context) => IncidentTaskFormPage()),
           );
-
-          // Store the form data in the list when it returns
-          if (result != null) {
-            setState(() {
-              formDataList.add(result as Map<String, dynamic>);
-            });
-          }
         },
         foregroundColor: customizations[index].$1,
         backgroundColor: customizations[index].$2,

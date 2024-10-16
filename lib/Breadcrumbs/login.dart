@@ -3,6 +3,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:tracking_table/navbar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -32,6 +33,18 @@ class _LoginPageState extends State<LoginPage> {
 
       if (data['status'] == 'success') {
         int groupId = data['user']['group_id'];
+        String userId =
+            data['user']['login']; // Menggunakan login sebagai userId
+
+        // Simpan login ke SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('login', userId); // Simpan login sebagai userId
+
+        // Cek apakah login tersimpan dengan benar
+        String? savedLogin = prefs.getString('login');
+        print('Saved login in SharedPreferences: $savedLogin'); // Debugging
+
+        // Navigasi ke halaman berikutnya
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
