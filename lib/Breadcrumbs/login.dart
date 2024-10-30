@@ -44,7 +44,6 @@ class _LoginPageState extends State<LoginPage> {
         String? savedLogin = prefs.getString('login');
         print('Saved login in SharedPreferences: $savedLogin'); // Debugging
 
-        // Navigasi ke halaman berikutnya
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(

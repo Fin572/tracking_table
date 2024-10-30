@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:tracking_table/Ticketing/detail_ticketing.dart';
 import 'package:tracking_table/Ticketing/form.dart';
 import 'package:tracking_table/navbar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TicketingApp extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -44,17 +48,40 @@ class Ticketing extends StatefulWidget {
 }
 
 class _TicketingState extends State<Ticketing> {
-  static const List<(Color?, Color?, ShapeBorder?)> customizations =
-      <(Color?, Color?, ShapeBorder?)>[
-    (null, null, null),
-    (null, Colors.green, null),
-    (Colors.white, Colors.green, null),
-    (Colors.white, Colors.green, CircleBorder()),
-  ];
-  int index = 0;
-
-  // Change formData to a List to hold multiple form submissions
   List<Map<String, dynamic>> formDataList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchFormsFromServer(); // Ambil data dari server
+  }
+
+  // Mengambil form dari server berdasarkan added_by atau worker_id
+  Future<void> fetchFormsFromServer() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId =
+        prefs.getString('login'); // Ambil login sebagai userId dari session
+
+    if (userId != null) {
+      // Kirim permintaan ke server untuk mengambil data form berdasarkan user yang mengisi (added_by) atau worker yang di-assign
+      final response = await http.post(
+        Uri.parse('https://indoguna.info/Datatable/Form/fetchforms.php'),
+        body: {'user_id': userId},
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        print('Data fetched: $data'); // Debug respons dari server
+        setState(() {
+          formDataList = List<Map<String, dynamic>>.from(data);
+        });
+      } else {
+        print('Failed to fetch form data from server: ${response.body}');
+      }
+    } else {
+      print('User ID not found in shared preferences');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,33 +110,57 @@ class _TicketingState extends State<Ticketing> {
               itemCount: formDataList.length,
               itemBuilder: (context, index) {
                 final formData = formDataList[index];
-                return ListTile(
-                  title: Text('Request: ${formData['title']}'),
-                  subtitle: Text('Description: ${formData['description']}'),
+                // Gunakan Visibility widget untuk mengontrol apakah ListTile ditampilkan
+                return Visibility(
+                  visible: (widget.user['login'] == formData['added_by'] ||
+                      widget.user['login'] == formData['worker_id']),
+                  child: Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      title: Text(
+                        'Request: ${formData['Title']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Added At: ${formData['added_at']}'),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                      isThreeLine: true,
+                      onTap: () {
+                        // Navigasi ke halaman detail ticketing
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetailTicketingPage(
+                              formData:
+                                  formData, // Kirim data form yang dipilih
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 );
               },
             )
           : const Center(child: Text('No data submitted!')),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Receive form data after task is submitted
-          final result = await Navigator.push(
+          // Navigasi ke halaman form untuk menambahkan form baru
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => TaskFormPage(),
             ),
           );
-
-          // Store the form data in the list when it returns
-          if (result != null) {
-            setState(() {
-              formDataList.add(result as Map<String, dynamic>);
-            });
-          }
+          // Setelah kembali dari form, ambil ulang data form dari server
+          fetchFormsFromServer();
         },
-        foregroundColor: customizations[index].$1,
-        backgroundColor: customizations[index].$2,
-        shape: customizations[index].$3,
         child: const Icon(Icons.add),
       ),
     );

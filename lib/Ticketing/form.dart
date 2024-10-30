@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:tracking_table/Breadcrumbs/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -24,6 +23,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
   String? selectedWorkerLogin;
   String? userId;
   DateTime? selectedDate;
+  DateTime? autoDate;
 
   List<dynamic> organizations = [];
   List<dynamic> locations = [];
@@ -37,6 +37,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
   @override
   void initState() {
     super.initState();
+    autoDate = DateTime.now();
     fetchOrganizations();
     fetchServices();
     fetchWorkers();
@@ -184,6 +185,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
           ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
           : null,
       'login': login, // Otomatis menambahkan 'login' ke data
+      'added_at': DateTime.now().toIso8601String(),
     };
 
     print("Data to submit: $data"); // Debugging log untuk memastikan login ada

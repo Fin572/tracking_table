@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class IncidentTaskFormPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   String? selectedService;
   String? selectedImpact;
   String? selectedWorkerLogin;
+  String? userId;
   DateTime? selectedDate;
 
   List<dynamic> organizations = [];
@@ -37,6 +39,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
     fetchOrganizations();
     fetchServices();
     fetchWorkers();
+    fetchUserId();
   }
 
   Future<void> fetchOrganizations() async {
@@ -47,6 +50,30 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
         organizations = json.decode(response.body);
       });
     }
+  }
+
+  Future<void> fetchUserId() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? userId = prefs.getString('login'); // Ambil login yang disimpan
+      if (userId != null) {
+        print('User ID fetched: $userId');
+      } else {
+        print('No userId found');
+      }
+    } catch (e) {
+      print('Error fetching userId: $e');
+    }
+  }
+
+  Future<void> saveLogin(String login) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('login', login);
+    print("Login disimpan: $login");
+  }
+
+  void onLoginSuccess(String login) {
+    saveLogin(login); // Panggil fungsi ini setelah login berhasil
   }
 
   Future<void> fetchLocations(String organizationID) async {
@@ -115,7 +142,6 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
     }
   }
 
-  // New function to fetch workers
   Future<void> fetchWorkers() async {
     final response = await http
         .get(Uri.parse('https://indoguna.info/Datatable/Form/get_worker.php'));
@@ -127,6 +153,18 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   }
 
   Future<void> submitTask() async {
+    // Ambil login dari SharedPreferences
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? login =
+        prefs.getString('login'); // Mengambil 'login', bukan 'userId'
+
+    // Pastikan login tidak null
+    if (login == null || login.isEmpty) {
+      print("Error: Login is null or empty");
+      return;
+    }
+
+    // Buat data form untuk disubmit
     var data = {
       'problems': taskController.text,
       'description': descriptionController.text,
@@ -137,15 +175,19 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
       'service': selectedService,
       'impact': selectedImpact,
       'worker': selectedWorkerLogin,
-      'device_type': selectedDeviceType, // Tambahkan device_type
+      'device_type': selectedDeviceType,
       'device': selectedDevice != null
           ? int.tryParse(selectedDevice!)?.toString()
           : null,
       'date': selectedDate != null
           ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
           : null,
+      'login': login, // Otomatis menambahkan 'login' ke data
     };
 
+    print("Data to submit: $data"); // Debugging log untuk memastikan login ada
+
+    // Lakukan POST request ke server
     final response = await http.post(
       Uri.parse('https://indoguna.info/Datatable/Form/submit_incident.php'),
       body: data,
