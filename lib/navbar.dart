@@ -93,28 +93,32 @@ class _MainPageState extends State<MainPage> {
         child: _selectedIndex == 0
             ? ProfilePage(user: widget.user)
             : _selectedIndex == 1
-                ? BreadcrumbsPage(
-                    user: widget.user,
-                    groupId: widget.groupId,
-                    organizations: widget.organizations,
-                  )
-                : Container(), // Empty container for ticketing
+                ? (widget.groupId <= 3
+                    ? BreadcrumbsPage(
+                        user: widget.user,
+                        groupId: widget.groupId,
+                        organizations: widget.organizations,
+                      )
+                    : Center(
+                        child: Text(
+                            "Access Denied"))) // Display message for restricted access
+                : Container(), // Ticketing is accessible by all
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: CircularNotchedRectangle(),
         notchMargin: 6.0,
         child: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.home, size: 24),
               label: 'Home',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.view_list, size: 24),
               label: 'Organizations',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.confirmation_num, size: 24),
               label: 'Ticketing',
             ),

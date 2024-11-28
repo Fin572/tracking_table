@@ -46,7 +46,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchOrganizations() async {
     final response = await http.get(
-        Uri.parse('https://indoguna.info/Datatable/Form/get_organization.php'));
+        Uri.parse('http://192.168.252.28/Datatable/Form/get_organization.php'));
     if (response.statusCode == 200) {
       setState(() {
         organizations = json.decode(response.body);
@@ -80,7 +80,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchLocations(String organizationID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
+        'http://192.168.252.28/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
     if (response.statusCode == 200) {
       setState(() {
         locations = json.decode(response.body);
@@ -90,7 +90,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchDevicesType(String locationID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_devices_type.php?location_id=$locationID'));
+        'http://192.168.252.28/Datatable/Form/get_devices_type.php?location_id=$locationID'));
 
     if (response.statusCode == 200) {
       print(response.body); // Debugging line to check the response
@@ -104,7 +104,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchDevices(String locationID, String deviceType) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
+        'http://192.168.252.28/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
     if (response.statusCode == 200) {
       setState(() {
         devices = json.decode(response.body); // Parse device data
@@ -116,7 +116,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchCallers(String organizationId) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
+        'http://192.168.252.28/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
     if (response.statusCode == 200) {
       setState(() {
         callers = json.decode(response.body);
@@ -126,7 +126,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchDepartments(String callerID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_department.php?CallerID=$callerID'));
+        'http://192.168.252.28/Datatable/Form/get_department.php?CallerID=$callerID'));
     if (response.statusCode == 200) {
       setState(() {
         departments = json.decode(response.body);
@@ -136,7 +136,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchServices() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_service.php'));
+        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_service.php'));
     if (response.statusCode == 200) {
       setState(() {
         services = json.decode(response.body);
@@ -146,7 +146,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchWorkers() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_worker.php'));
+        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_worker.php'));
     if (response.statusCode == 200) {
       setState(() {
         workers = json.decode(response.body);
@@ -192,7 +192,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
     // Lakukan POST request ke server
     final response = await http.post(
-      Uri.parse('https://indoguna.info/Datatable/Form/submit.php'),
+      Uri.parse('http://192.168.252.28/Datatable/Form/submit.php'),
       body: data,
     );
 
@@ -254,11 +254,15 @@ class _TaskFormPageState extends State<TaskFormPage> {
                     onChanged: (value) {
                       setState(() {
                         selectedOrganization = value as String?;
-                        selectedLocation = null;
-                        selectedCaller = null;
-                        selectedDepartment = null;
+                        selectedLocation =
+                            null; // Reset location when organization changes
+                        selectedCaller =
+                            null; // Reset caller when organization changes
+                        selectedDepartment =
+                            null; // Reset department when organization changes
 
-                        locations.clear();
+                        locations
+                            .clear(); // Clear location list when organization changes
                         departments.clear();
 
                         if (selectedOrganization != null) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tracking_table/Ticketing/detail_ticketing.dart';
+import 'package:tracking_table/Ticketing/detail_incident.dart';
 import 'package:tracking_table/Ticketing/form_incident.dart';
 import 'package:tracking_table/navbar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,7 +65,7 @@ class _IncidentState extends State<Incident> {
     if (userId != null) {
       // Kirim permintaan ke server untuk mengambil data incident berdasarkan user yang mengisi (added_by) atau worker yang di-assign
       final response = await http.post(
-        Uri.parse('https://indoguna.info/Datatable/Form/fetchincident.php'),
+        Uri.parse('http://192.168.252.28/Datatable/Form/fetchincident.php'),
         body: {'user_id': userId},
       );
 
@@ -136,7 +136,7 @@ class _IncidentState extends State<Incident> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => DetailTicketingPage(
+                            builder: (context) => DetailIncidentPage(
                               formData:
                                   incidentData, // Kirim data incident yang dipilih
                             ),

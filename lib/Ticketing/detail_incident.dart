@@ -2,23 +2,23 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class DetailTicketingPage extends StatefulWidget {
+class DetailIncidentPage extends StatefulWidget {
   final Map<String, dynamic> formData;
 
-  const DetailTicketingPage({Key? key, required this.formData})
+  const DetailIncidentPage({Key? key, required this.formData})
       : super(key: key);
 
   @override
-  _DetailTicketingPageState createState() => _DetailTicketingPageState();
+  _DetailIncidentPageState createState() => _DetailIncidentPageState();
 }
 
-class _DetailTicketingPageState extends State<DetailTicketingPage> {
+class _DetailIncidentPageState extends State<DetailIncidentPage> {
   String? selectedStatus;
   List<String> statuses = [];
 
   Future<void> fetchStatuses() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/fetch_status.php'); // Sesuaikan URL
+        'http://192.168.252.28/Datatable/Form/Fetch/fetch_s_incident.php'); // Sesuaikan URL
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -32,7 +32,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
           SnackBar(content: Text('Error: ${data['message']}')),
         );
       }
-    } else { 
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to fetch statuses from server.')),
       );
@@ -41,12 +41,12 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> saveStatus() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/status.php'); // Sesuaikan dengan URL server
+        'http://192.168.252.28/Datatable/Form/Fetch/status_incident.php'); // Sesuaikan dengan URL server
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: {
-        'id': widget.formData['UserRequestID'].toString(),
+        'id': widget.formData['IncidentID'].toString(),
         'status': selectedStatus,
       },
     );

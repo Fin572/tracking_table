@@ -33,7 +33,7 @@ class _DeviceTypesPageState extends State<DeviceTypesPage> {
 
   Future<void> fetchDeviceTypes() async {
     final response = await http.get(Uri.parse(
-        'http://indoguna.info/Datatable/get_devices_type.php?location_id=${widget.locationId}'));
+        'http://192.168.252.28/Datatable/get_devices_type.php?location_id=${widget.locationId}'));
 
     if (response.statusCode == 200) {
       setState(() {

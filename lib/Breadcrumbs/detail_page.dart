@@ -39,7 +39,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Future<void> _loadSavedLocation() async {
     try {
       final response = await http.post(
-        Uri.parse('https://indoguna.info/Datatable/latlong.php'),
+        Uri.parse('http://192.168.252.28/Datatable/latlong.php'),
         body: {
           'id': widget.device['id'].toString(),
           'action': 'get_location',
@@ -97,7 +97,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://indoguna.info/Datatable/get_photos.php?id=${widget.device['id']}'),
+            'http://192.168.252.28/Datatable/get_photos.php?id=${widget.device['id']}'),
       );
 
       print('Photos response: ${response.body}'); // Debug print
@@ -155,7 +155,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://indoguna.info/Datatable/geolocator.php'),
+        Uri.parse('http://192.168.252.28/Datatable/geolocator.php'),
         body: {
           'id': widget.device['id'].toString(),
           'latitude': latitude.toString(),
@@ -190,7 +190,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
 
       try {
         final response = await http.post(
-          Uri.parse('https://indoguna.info/Datatable/upload_photo.php'),
+          Uri.parse('http://192.168.252.28/Datatable/upload_photo.php'),
           body: {
             'id': widget.device['id'].toString(),
             'photo': base64Image,
@@ -214,7 +214,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
   Future<void> _deletePhoto(int index) async {
     try {
       final response = await http.post(
-        Uri.parse('https://indoguna.info/Datatable/delete_photo.php'),
+        Uri.parse('http://192.168.252.28/Datatable/delete_photo.php'),
         body: {
           'id': widget.device['id'].toString(),
           'photoIndex': index.toString(),
@@ -277,7 +277,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
       try {
         final qrValidationResult = QrValidator.validate(
           data:
-              'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
+              'http://192.168.252.28/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
           version: QrVersions.auto,
           errorCorrectionLevel: QrErrorCorrectLevel.L,
         );
@@ -285,7 +285,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
         if (qrValidationResult.status == QrValidationStatus.valid) {
           final qrCodeImage = QrPainter(
             data:
-                'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
+                'http://192.168.252.28/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
             version: QrVersions.auto,
             gapless: true,
             color: const Color(0xFF000000),
@@ -355,7 +355,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               top: 40,
               right: 20,
               child: IconButton(
-                icon: Icon(Icons.delete, color: Colors.white),
+                icon: Icon(Icons.delete, color: const Color.fromARGB(255, 32, 23, 23)),
                 onPressed: () {
                   Navigator.pop(context);
                   _deletePhoto(initialIndex);
@@ -379,7 +379,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
             height: 200,
             child: QrImageView(
               data:
-                  'https://indoguna.info/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
+                  'http://192.168.252.28/Datatable/get_devices.php?id=${Uri.encodeComponent(widget.device['id'].toString())}',
               version: QrVersions.auto,
               size: 150.0,
             ),

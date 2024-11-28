@@ -23,6 +23,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   String? selectedWorkerLogin;
   String? userId;
   DateTime? selectedDate;
+  DateTime? autoDate;
 
   List<dynamic> organizations = [];
   List<dynamic> locations = [];
@@ -36,6 +37,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   @override
   void initState() {
     super.initState();
+    autoDate = DateTime.now();
     fetchOrganizations();
     fetchServices();
     fetchWorkers();
@@ -44,7 +46,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchOrganizations() async {
     final response = await http.get(
-        Uri.parse('https://indoguna.info/Datatable/Form/get_organization.php'));
+        Uri.parse('http://192.168.252.28/Datatable/Form/get_organization.php'));
     if (response.statusCode == 200) {
       setState(() {
         organizations = json.decode(response.body);
@@ -78,7 +80,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchLocations(String organizationID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
+        'http://192.168.252.28/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
     if (response.statusCode == 200) {
       setState(() {
         locations = json.decode(response.body);
@@ -88,7 +90,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchDevicesType(String locationID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_devices_type.php?location_id=$locationID'));
+        'http://192.168.252.28/Datatable/Form/get_devices_type.php?location_id=$locationID'));
 
     if (response.statusCode == 200) {
       print(response.body); // Debugging line to check the response
@@ -102,7 +104,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchDevices(String locationID, String deviceType) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
+        'http://192.168.252.28/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
     if (response.statusCode == 200) {
       setState(() {
         devices = json.decode(response.body); // Parse device data
@@ -114,7 +116,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchCallers(String organizationId) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
+        'http://192.168.252.28/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
     if (response.statusCode == 200) {
       setState(() {
         callers = json.decode(response.body);
@@ -124,7 +126,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchDepartments(String callerID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_department.php?CallerID=$callerID'));
+        'http://192.168.252.28/Datatable/Form/get_department.php?CallerID=$callerID'));
     if (response.statusCode == 200) {
       setState(() {
         departments = json.decode(response.body);
@@ -134,7 +136,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchServices() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_service.php'));
+        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_service.php'));
     if (response.statusCode == 200) {
       setState(() {
         services = json.decode(response.body);
@@ -144,7 +146,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchWorkers() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_worker.php'));
+        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_worker.php'));
     if (response.statusCode == 200) {
       setState(() {
         workers = json.decode(response.body);
@@ -166,7 +168,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
     // Buat data form untuk disubmit
     var data = {
-      'problems': taskController.text,
+      'request': taskController.text,
       'description': descriptionController.text,
       'organization': selectedOrganization,
       'location': selectedLocation,
@@ -183,13 +185,14 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
           ? "${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}"
           : null,
       'login': login, // Otomatis menambahkan 'login' ke data
+      'added_at': DateTime.now().toIso8601String(),
     };
 
     print("Data to submit: $data"); // Debugging log untuk memastikan login ada
 
     // Lakukan POST request ke server
     final response = await http.post(
-      Uri.parse('https://indoguna.info/Datatable/Form/submit_incident.php'),
+      Uri.parse('http://192.168.252.28/Datatable/Form/submit_incident.php'),
       body: data,
     );
 
@@ -226,7 +229,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
               children: [
                 TextField(
                   controller: taskController,
-                  decoration: InputDecoration(labelText: 'Problems'),
+                  decoration: InputDecoration(labelText: 'Problem'),
                 ),
                 SizedBox(height: 10),
                 TextField(
@@ -251,11 +254,15 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
                     onChanged: (value) {
                       setState(() {
                         selectedOrganization = value as String?;
-                        selectedLocation = null;
-                        selectedCaller = null;
-                        selectedDepartment = null;
+                        selectedLocation =
+                            null; // Reset location when organization changes
+                        selectedCaller =
+                            null; // Reset caller when organization changes
+                        selectedDepartment =
+                            null; // Reset department when organization changes
 
-                        locations.clear();
+                        locations
+                            .clear(); // Clear location list when organization changes
                         departments.clear();
 
                         if (selectedOrganization != null) {
