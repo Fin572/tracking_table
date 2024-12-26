@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class DetailIncidentPage extends StatefulWidget {
   final Map<String, dynamic> formData;
 
-  const DetailIncidentPage({Key? key, required this.formData})
+  const DetailIncidentPage({Key? key, required this.formData, required Future<Null> Function() onStatusChanged})
       : super(key: key);
 
   @override
@@ -18,7 +18,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
 
   Future<void> fetchStatuses() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/fetch_s_incident.php'); // Sesuaikan URL
+        'http://192.168.252.28/Datatable/Form/Fetch/fetch_s_incident.php'); // Update sesuai endpoint
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -39,9 +39,9 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
     }
   }
 
-  Future<void> saveStatus() async {
+ Future<void> saveStatus() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/status_incident.php'); // Sesuaikan dengan URL server
+        'http://192.168.252.28/Datatable/Form/Fetch/status_incident.php'); // Update sesuai endpoint
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -139,17 +139,74 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
     }
   }
 
+  Future<void> deleteIncident() async {
+    final url = Uri.parse(
+        'http://192.168.252.28/Datatable/Form/Fetch/delete_f_incident.php'); // Update sesuai endpoint
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {'id': widget.formData['IncidentID'].toString()},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Incident berhasil dihapus!')),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghapus incident: ${data['message']}')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghubungi server.')),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     fetchStatuses();
   }
 
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detail Form'),
+        title: Text('Incident Detail'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.delete),
+            tooltip: 'Hapus Form',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Konfirmasi Hapus'),
+                  content: Text('Apakah Anda yakin ingin menghapus data ini?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        deleteIncident();
+                      },
+                      child: Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -180,33 +237,29 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                           value == null ? 'Please select a status' : null,
                     ),
                   ),
-            _buildDetailFormField('Request/Problems', widget.formData['Title']),
-            _buildDetailFormField(
-                'Description', widget.formData['Description']),
+            _buildDetailFormField('Title', widget.formData['Title']),
+            _buildDetailFormField('Description', widget.formData['Description']),
             FutureBuilder(
-              future: fetchOrganizationName(
-                  widget.formData['OrganizationID'].toString()),
+              future: fetchOrganizationName(widget.formData['OrganizationID'].toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
-                  return _buildDetailFormField('OrganizationID', 'Error');
+                  return _buildDetailFormField('Organization', 'Error');
                 } else {
-                  return _buildDetailFormField('OrganizationID', snapshot.data);
+                  return _buildDetailFormField('Organization', snapshot.data ?? 'Unknown');
                 }
               },
             ),
-            FutureBuilder<String>(
-              future:
-                  fetchLocationName(widget.formData['location_id'].toString()),
+            FutureBuilder(
+              future: fetchLocationName(widget.formData['location_id'].toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Location', 'Error');
                 } else {
-                  return _buildDetailFormField(
-                      'Location', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField('Location', snapshot.data ?? 'Unknown');
                 }
               },
             ),
@@ -216,9 +269,9 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
-                  return _buildDetailFormField('CallerID', 'Error');
+                  return _buildDetailFormField('Caller', 'Error');
                 } else {
-                  return _buildDetailFormField('CallerID', snapshot.data);
+                  return _buildDetailFormField('Caller', snapshot.data ?? 'Unknown');
                 }
               },
             ),
@@ -229,38 +282,32 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
-                  return _buildDetailFormField(
-                      'ServiceID', 'Error loading service');
+                  return _buildDetailFormField('Service', 'Error');
                 } else {
-                  return _buildDetailFormField('ServiceID', snapshot.data);
+                  return _buildDetailFormField('Service', snapshot.data ?? 'Unknown');
                 }
               },
             ),
             _buildDetailFormField('Impact', widget.formData['Impact']),
-            _buildDetailFormField('Worker', widget.formData['worker_id']),
-            _buildDetailFormField(
-                'Device Type', widget.formData['devices_type']),
             FutureBuilder(
               future: fetchDeviceName(widget.formData['devices'].toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return _buildDetailFormField('Device', 'Error');
                 } else {
-                  final name = snapshot.data ?? 'Unknown';
-                  return _buildDetailFormField('Device Name', name);
+                  return _buildDetailFormField('Device', snapshot.data ?? 'Unknown');
                 }
               },
             ),
-            _buildDetailFormField(
-                'Selected Date', widget.formData['StartDate']),
+            _buildDetailFormField('Start Date', widget.formData['StartDate']),
             _buildDetailFormField('Added At', widget.formData['added_at']),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: selectedStatus == null ? null : saveStatus,
-                child: Text('Simpan Status'),
+                child: Text('Save Status'),
               ),
             ),
           ],

@@ -116,7 +116,7 @@ class _MainPageState extends State<MainPage> {
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.view_list, size: 24),
-              label: 'Organizations',
+              label: 'Devices',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.confirmation_num, size: 24),

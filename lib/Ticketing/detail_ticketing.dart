@@ -5,7 +5,10 @@ import 'package:http/http.dart' as http;
 class DetailTicketingPage extends StatefulWidget {
   final Map<String, dynamic> formData;
 
-  const DetailTicketingPage({Key? key, required this.formData})
+  const DetailTicketingPage(
+      {Key? key,
+      required this.formData,
+      required Future<Null> Function() onStatusChanged})
       : super(key: key);
 
   @override
@@ -32,7 +35,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
           SnackBar(content: Text('Error: ${data['message']}')),
         );
       }
-    } else { 
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to fetch statuses from server.')),
       );
@@ -57,6 +60,11 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Status berhasil disimpan!')),
         );
+
+        // Navigasi ke halaman History jika status adalah Resolved atau Closed
+        if (selectedStatus == 'Resolved' || selectedStatus == 'Closed') {
+          Navigator.pushReplacementNamed(context, '/history');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menyimpan status: ${data['message']}')),
@@ -139,6 +147,36 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
     }
   }
 
+  Future<void> deleteData() async {
+    final url = Uri.parse(
+        'http://192.168.252.28/Datatable/Form/Fetch/delete_form.php'); // Sesuaikan URL API
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {
+        'id': widget.formData['UserRequestID'].toString(),
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Data berhasil dihapus!')),
+        );
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghapus data: ${data['message']}')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menghubungi server.')),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -150,6 +188,37 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Detail Form'),
+        actions: [
+          // Tambahkan IconButton dengan ikon tong sampah
+          IconButton(
+            icon: Icon(Icons.delete),
+            tooltip: 'Hapus Form',
+            onPressed: () {
+              // Tampilkan dialog konfirmasi sebelum menghapus
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Konfirmasi Hapus'),
+                  content: Text('Apakah Anda yakin ingin menghapus data ini?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context).pop(), // Tutup dialog
+                      child: Text('Batal'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Tutup dialog
+                        deleteData(); // Panggil fungsi hapus data
+                      },
+                      child: Text('Hapus', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
