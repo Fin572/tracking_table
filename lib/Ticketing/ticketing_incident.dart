@@ -63,7 +63,7 @@ class _IncidentState extends State<Incident> {
 
     if (userId != null) {
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/Form/fetchincident.php'),
+        Uri.parse('https://indoguna.info/Datatable/Form/fetchincident.php'),
         body: {
           'user_id': userId,
           'group_id': widget.groupId.toString(), // Send groupId to the server
@@ -191,13 +191,24 @@ class _IncidentState extends State<Incident> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          // Navigasi ke halaman form
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => IncidentTaskFormPage(),
             ),
           );
-          fetchIncidentsFromServer();
+
+          // Panggil kembali data dari server
+          await fetchIncidentsFromServer();
+
+          // Tampilkan pesan menggunakan SnackBar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Form sudah ditambahkan'),
+              duration: Duration(seconds: 3),
+            ),
+          );
         },
         child: const Icon(Icons.add),
       ),

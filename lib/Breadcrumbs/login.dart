@@ -18,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     final response = await http.post(
-      Uri.parse('http://192.168.252.28/Datatable/login.php'),
+      Uri.parse('https://indoguna.info/Datatable/login.php'),
       body: {
         'username': _usernameController.text,
         'password': _passwordController.text,
@@ -29,26 +29,70 @@ class _LoginPageState extends State<LoginPage> {
     print('Response body: ${response.body}');
 
     try {
+      // Parsing JSON
       final data = jsonDecode(response.body);
 
+      // Debugging tambahan untuk memverifikasi struktur JSON
+      print('Full response data: $data');
+
       if (data['status'] == 'success') {
-        int groupId = data['user']['group_id'];
-        String userId =
-            data['user']['login']; // Menggunakan login sebagai userId
+        final user = data['user'];
+        int groupId = user['group_id'];
+        String userId = user['login'];
 
-        // Simpan login ke SharedPreferences
+        print('Parsed groupId: $groupId');
+        print('Parsed userId: $userId');
+
+        // Gabungkan semua penyimpanan ke SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('login', userId); // Simpan login sebagai userId
 
-        // Cek apakah login tersimpan dengan benar
-        String? savedLogin = prefs.getString('login');
-        print('Saved login in SharedPreferences: $savedLogin'); // Debugging
+        // Simpan data utama
+        await prefs.setString('login', userId);
+        await prefs.setInt('group_id', groupId);
 
+        // Validasi dan simpan userDetails
+        if (data['userDetails'] != null && data['userDetails'] is Map) {
+          Map<String, dynamic> userDetails = data['userDetails'];
+
+          // Simpan data userDetails
+          await prefs.setString('employee_id', userDetails['EmployeeID'] ?? '');
+          await prefs.setString(
+              'location', userDetails['Location']?.toString() ?? '');
+          await prefs.setString('department', userDetails['Department'] ?? '');
+          await prefs.setString('name', userDetails['Name'] ?? '');
+          await prefs.setString('email', userDetails['Email'] ?? '');
+          await prefs.setString('phone', userDetails['Phone'] ?? '');
+
+          print('User details saved for regular user.');
+        } else {
+          // Admin: Clear userDetails-related keys
+          await prefs.setString('employee_id', '');
+          await prefs.setString('location', '');
+          await prefs.setString('department', '');
+          await prefs.setString('name', '');
+          await prefs.setString('email', '');
+          await prefs.setString('phone', '');
+
+          print('Admin login detected, no userDetails to save.');
+        }
+
+        // Debugging untuk memastikan data tersimpan
+        print('Final saved data in SharedPreferences:');
+        print('Login: ${prefs.getString('login')}');
+        print('Group ID: ${prefs.getInt('group_id')}');
+        print('Employee ID: ${prefs.getString('employee_id')}');
+        print('Location: ${prefs.getString('location')}');
+        print('Department: ${prefs.getString('department')}');
+        print('Name: ${prefs.getString('name')}');
+        print('Email: ${prefs.getString('email')}');
+        print('Phone: ${prefs.getString('phone')}');
+
+        // Navigasi ke MainPage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => MainPage(
-              user: data['user'],
+              user: user,
               groupId: groupId,
               organizations: data['organizations'],
             ),
@@ -60,7 +104,7 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     } catch (e) {
-      print('Error: $e'); // Log the error for debugging
+      print('Error parsing JSON or processing data: $e');
       setState(() {
         _message = 'An error occurred';
       });

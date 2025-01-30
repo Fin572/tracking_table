@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DetailIncidentPage extends StatefulWidget {
   final Map<String, dynamic> formData;
 
-  const DetailIncidentPage({Key? key, required this.formData, required Future<Null> Function() onStatusChanged})
+  const DetailIncidentPage(
+      {Key? key,
+      required this.formData,
+      required Future<Null> Function() onStatusChanged})
       : super(key: key);
 
   @override
@@ -14,11 +18,12 @@ class DetailIncidentPage extends StatefulWidget {
 
 class _DetailIncidentPageState extends State<DetailIncidentPage> {
   String? selectedStatus;
+  int? groupId;
   List<String> statuses = [];
 
   Future<void> fetchStatuses() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/fetch_s_incident.php'); // Update sesuai endpoint
+        'https://indoguna.info/Datatable/Form/Fetch/fetch_s_incident.php'); // Update sesuai endpoint
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -39,9 +44,9 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
     }
   }
 
- Future<void> saveStatus() async {
+  Future<void> saveStatus() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/status_incident.php'); // Update sesuai endpoint
+        'https://indoguna.info/Datatable/Form/Fetch/status_incident.php'); // Update sesuai endpoint
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -72,7 +77,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
   Future<String> fetchCallerName(String callerId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
     );
 
     if (response.statusCode == 200) {
@@ -86,7 +91,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
   Future<String> fetchOrganizationName(String organizationId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
     );
 
     if (response.statusCode == 200) {
@@ -100,7 +105,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
   Future<String> fetchLocationName(String locationId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
     );
 
     if (response.statusCode == 200) {
@@ -111,10 +116,28 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
     }
   }
 
+  Future<void> fetchGroupId() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      groupId = prefs.getInt('group_id'); // Ambil group_id dari sesi
+      print(
+          'Fetched group_id: $groupId'); // Debugging untuk memastikan nilai group_id
+      if (groupId == null) {
+        print('Group ID is null. Cannot prefill form.');
+      } else if (groupId! > 3) {
+        print('Group ID is valid. Prefilling form...');
+      } else {
+        print('Group ID is less than or equal to 3. No prefill needed.');
+      }
+    } catch (e) {
+      print('Error fetching group_id: $e');
+    }
+  }
+
   Future<String> fetchServiceName(String smService) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
     );
 
     if (response.statusCode == 200) {
@@ -128,7 +151,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
   Future<String> fetchDeviceName(String deviceId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
     );
 
     if (response.statusCode == 200) {
@@ -141,7 +164,7 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
 
   Future<void> deleteIncident() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/delete_f_incident.php'); // Update sesuai endpoint
+        'https://indoguna.info/Datatable/Form/Fetch/delete_f_incident.php'); // Update sesuai endpoint
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -157,7 +180,8 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menghapus incident: ${data['message']}')),
+          SnackBar(
+              content: Text('Gagal menghapus incident: ${data['message']}')),
         );
       }
     } else {
@@ -170,10 +194,10 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
   @override
   void initState() {
     super.initState();
+    fetchGroupId();
     fetchStatuses();
   }
 
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -199,7 +223,8 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                         Navigator.of(context).pop();
                         deleteIncident();
                       },
-                      child: Text('Delete', style: TextStyle(color: Colors.red)),
+                      child:
+                          Text('Delete', style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -220,6 +245,10 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                       decoration: InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(),
+                        filled: groupId != null && groupId! > 3,
+                        fillColor: groupId != null && groupId! > 3
+                            ? Colors.grey.shade200
+                            : null,
                       ),
                       value: selectedStatus,
                       items: statuses.map((status) {
@@ -228,38 +257,46 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                           child: Text(status),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedStatus = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a status' : null,
+                      onChanged: (groupId != null && groupId! > 3)
+                          ? null
+                          : (value) {
+                              setState(() {
+                                selectedStatus = value;
+                              });
+                            },
+                      validator: (value) => (groupId != null && groupId! > 3)
+                          ? null
+                          : (value == null ? 'Please select a status' : null),
                     ),
                   ),
             _buildDetailFormField('Title', widget.formData['Title']),
-            _buildDetailFormField('Description', widget.formData['Description']),
+            _buildDetailFormField(
+                'Description', widget.formData['Description']),
             FutureBuilder(
-              future: fetchOrganizationName(widget.formData['OrganizationID'].toString()),
+              future: fetchOrganizationName(
+                  widget.formData['OrganizationID'].toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Organization', 'Error');
                 } else {
-                  return _buildDetailFormField('Organization', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField(
+                      'Organization', snapshot.data ?? 'Unknown');
                 }
               },
             ),
             FutureBuilder(
-              future: fetchLocationName(widget.formData['location_id'].toString()),
+              future:
+                  fetchLocationName(widget.formData['location_id'].toString()),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return CircularProgressIndicator();
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Location', 'Error');
                 } else {
-                  return _buildDetailFormField('Location', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField(
+                      'Location', snapshot.data ?? 'Unknown');
                 }
               },
             ),
@@ -271,7 +308,8 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Caller', 'Error');
                 } else {
-                  return _buildDetailFormField('Caller', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField(
+                      'Caller', snapshot.data ?? 'Unknown');
                 }
               },
             ),
@@ -284,7 +322,8 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Service', 'Error');
                 } else {
-                  return _buildDetailFormField('Service', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField(
+                      'Service', snapshot.data ?? 'Unknown');
                 }
               },
             ),
@@ -297,7 +336,8 @@ class _DetailIncidentPageState extends State<DetailIncidentPage> {
                 } else if (snapshot.hasError) {
                   return _buildDetailFormField('Device', 'Error');
                 } else {
-                  return _buildDetailFormField('Device', snapshot.data ?? 'Unknown');
+                  return _buildDetailFormField(
+                      'Device', snapshot.data ?? 'Unknown');
                 }
               },
             ),

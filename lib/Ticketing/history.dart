@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:tracking_table/Ticketing/detail_history.dart';
 import 'dart:convert';
 
 class HistoryPage extends StatefulWidget {
@@ -20,7 +21,7 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   List<Map<String, dynamic>> historyDataList = [];
-  bool isLoading = true; // Untuk menunjukkan loading spinner
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -30,13 +31,11 @@ class _HistoryPageState extends State<HistoryPage> {
 
   Future<void> fetchHistoryFromServer() async {
     try {
-      // Ambil user_id dan group_id dari widget
       final String userId = widget.user['login'];
       final int groupId = widget.groupId;
 
-      // Panggil API dengan parameter user_id dan group_id
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/Form/Fetch/fetchhistory.php'),
+        Uri.parse('https://indoguna.info/Datatable/Form/Fetch/fetchhistory.php'),
         body: {
           'user_id': userId,
           'group_id': groupId.toString(),
@@ -44,21 +43,18 @@ class _HistoryPageState extends State<HistoryPage> {
       );
 
       if (response.statusCode == 200) {
-        // Decode JSON jika berhasil
         List<dynamic> data = json.decode(response.body);
         setState(() {
           historyDataList = List<Map<String, dynamic>>.from(data);
           isLoading = false;
         });
       } else {
-        // Tampilkan pesan kesalahan jika gagal
         print('Failed to fetch history data: ${response.body}');
         setState(() {
           isLoading = false;
         });
       }
     } catch (e) {
-      // Tangkap kesalahan koneksi
       print('Error: $e');
       setState(() {
         isLoading = false;
@@ -74,7 +70,7 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(), // Spinner saat loading
+              child: CircularProgressIndicator(),
             )
           : historyDataList.isNotEmpty
               ? ListView.builder(
@@ -98,6 +94,17 @@ class _HistoryPageState extends State<HistoryPage> {
                           ],
                         ),
                         isThreeLine: true,
+                        onTap: () {
+                          // Navigasi ke DetailHistoryPage
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailHistoryPage(
+                                formData: historyData, // Kirim data yang dipilih
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },

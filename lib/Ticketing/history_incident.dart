@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:tracking_table/Ticketing/detail_history.dart';
 import 'dart:convert';
 
 class HistoryIncidentPage extends StatefulWidget {
@@ -37,7 +38,7 @@ class _HistoryIncidentPageState extends State<HistoryIncidentPage> {
       // Panggil API dengan parameter user_id dan group_id
       final response = await http.post(
         Uri.parse(
-            'http://192.168.252.28/Datatable/Form/Fetch/fetch_h_incident.php'),
+            'https://indoguna.info/Datatable/Form/Fetch/fetch_h_incident.php'),
         body: {
           'user_id': userId,
           'group_id': groupId.toString(),
@@ -72,6 +73,7 @@ class _HistoryIncidentPageState extends State<HistoryIncidentPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('History Incident'),
+        backgroundColor: const Color(0xff32394a),
       ),
       body: isLoading
           ? const Center(
@@ -99,6 +101,16 @@ class _HistoryIncidentPageState extends State<HistoryIncidentPage> {
                           ],
                         ),
                         isThreeLine: true,
+                        onTap: () {
+                          // Navigasi ke halaman DetailHistoryPage dengan data yang dipilih
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DetailHistoryPage(formData: incidentData),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },

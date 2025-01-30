@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DetailTicketingPage extends StatefulWidget {
   final Map<String, dynamic> formData;
@@ -17,11 +18,12 @@ class DetailTicketingPage extends StatefulWidget {
 
 class _DetailTicketingPageState extends State<DetailTicketingPage> {
   String? selectedStatus;
+  int? groupId;
   List<String> statuses = [];
 
   Future<void> fetchStatuses() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/fetch_status.php'); // Sesuaikan URL
+        'https://indoguna.info/Datatable/Form/Fetch/fetch_status.php'); // Sesuaikan URL
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -44,7 +46,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> saveStatus() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/status.php'); // Sesuaikan dengan URL server
+        'https://indoguna.info/Datatable/Form/Fetch/status.php'); // Sesuaikan dengan URL server
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -80,7 +82,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchCallerName(String callerId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
     );
 
     if (response.statusCode == 200) {
@@ -94,7 +96,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchOrganizationName(String organizationId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
     );
 
     if (response.statusCode == 200) {
@@ -105,10 +107,28 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
     }
   }
 
+  Future<void> fetchGroupId() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      groupId = prefs.getInt('group_id'); // Ambil group_id dari sesi
+      print(
+          'Fetched group_id: $groupId'); // Debugging untuk memastikan nilai group_id
+      if (groupId == null) {
+        print('Group ID is null. Cannot prefill form.');
+      } else if (groupId! > 3) {
+        print('Group ID is valid. Prefilling form...');
+      } else {
+        print('Group ID is less than or equal to 3. No prefill needed.');
+      }
+    } catch (e) {
+      print('Error fetching group_id: $e');
+    }
+  }
+
   Future<String> fetchLocationName(String locationId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
     );
 
     if (response.statusCode == 200) {
@@ -122,7 +142,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchServiceName(String smService) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
     );
 
     if (response.statusCode == 200) {
@@ -136,7 +156,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchDeviceName(String deviceId) async {
     final response = await http.get(
       Uri.parse(
-          'http://192.168.252.28/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
+          'https://indoguna.info/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
     );
 
     if (response.statusCode == 200) {
@@ -149,7 +169,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> deleteData() async {
     final url = Uri.parse(
-        'http://192.168.252.28/Datatable/Form/Fetch/delete_form.php'); // Sesuaikan URL API
+        'https://indoguna.info/Datatable/Form/Fetch/delete_form.php'); // Sesuaikan URL API
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -180,6 +200,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   @override
   void initState() {
     super.initState();
+    fetchGroupId();
     fetchStatuses();
   }
 
@@ -232,6 +253,10 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
                       decoration: InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(),
+                        filled: groupId != null && groupId! > 3,
+                        fillColor: groupId != null && groupId! > 3
+                            ? Colors.grey.shade200
+                            : null,
                       ),
                       value: selectedStatus,
                       items: statuses.map((status) {
@@ -240,13 +265,16 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
                           child: Text(status),
                         );
                       }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedStatus = value;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Please select a status' : null,
+                      onChanged: (groupId != null && groupId! > 3)
+                          ? null
+                          : (value) {
+                              setState(() {
+                                selectedStatus = value;
+                              });
+                            },
+                      validator: (value) => (groupId != null && groupId! > 3)
+                          ? null
+                          : (value == null ? 'Please select a status' : null),
                     ),
                   ),
             _buildDetailFormField('Request/Problems', widget.formData['Title']),

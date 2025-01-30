@@ -64,7 +64,7 @@ class _TicketingState extends State<Ticketing> {
 
     if (userId != null) {
       final response = await http.post(
-        Uri.parse('http://192.168.252.28/Datatable/Form/fetchforms.php'),
+        Uri.parse('https://indoguna.info/Datatable/Form/fetchforms.php'),
         body: {
           'user_id': userId,
           'group_id': widget.groupId.toString(), // Kirimkan groupId
@@ -191,13 +191,24 @@ class _TicketingState extends State<Ticketing> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          // Navigasi ke halaman form
           await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => TaskFormPage(),
             ),
           );
-          fetchFormsFromServer();
+
+          // Panggil kembali data dari server
+          await fetchFormsFromServer();
+
+          // Tampilkan pesan menggunakan SnackBar
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Form sudah ditambahkan'),
+              duration: Duration(seconds: 3),
+            ),
+          );
         },
         child: const Icon(Icons.add),
       ),

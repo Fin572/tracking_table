@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
   String? selectedImpact;
   String? selectedWorkerLogin;
   String? userId;
+  int? groupId;
   DateTime? selectedDate;
   DateTime? autoDate;
 
@@ -39,18 +41,65 @@ class _TaskFormPageState extends State<TaskFormPage> {
     super.initState();
     autoDate = DateTime.now();
     fetchOrganizations();
+    fetchDevices(null, null);
     fetchServices();
     fetchWorkers();
     fetchUserId();
+    fetchGroupId();
   }
 
   Future<void> fetchOrganizations() async {
     final response = await http.get(
-        Uri.parse('http://192.168.252.28/Datatable/Form/get_organization.php'));
+        Uri.parse('https://indoguna.info/Datatable/Form/get_organization.php'));
     if (response.statusCode == 200) {
       setState(() {
         organizations = json.decode(response.body);
       });
+    }
+  }
+
+  Future<void> fetchGroupId() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      groupId = prefs.getInt('group_id'); // Ambil group_id dari sesi
+      print(
+          'Fetched group_id: $groupId'); // Debugging untuk memastikan nilai group_id
+      if (groupId == null) {
+        print('Group ID is null. Cannot prefill form.');
+      } else if (groupId! > 3) {
+        print('Group ID is valid. Prefilling form...');
+        prefillForm();
+      } else {
+        print('Group ID is less than or equal to 3. No prefill needed.');
+      }
+    } catch (e) {
+      print('Error fetching group_id: $e');
+    }
+  }
+
+  void prefillForm() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? location = prefs.getString('location');
+      String? caller = prefs.getString('employee_id');
+
+      setState(() {
+        if (location != null &&
+            locations.any((loc) => loc['LocationID'].toString() == location)) {
+          selectedLocation = location;
+          fetchDevicesType(
+              selectedLocation!); // Fetch device type jika location valid
+        }
+
+        if (caller != null &&
+            callers.any((call) => call['EmployeeID'].toString() == caller)) {
+          selectedCaller = caller;
+          fetchDepartments(
+              selectedCaller!); // Fetch departments jika caller valid
+        }
+      });
+    } catch (e) {
+      print('Error in prefillForm: $e');
     }
   }
 
@@ -80,63 +129,119 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchLocations(String organizationID) async {
     final response = await http.get(Uri.parse(
-        'http://192.168.252.28/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
+        'https://indoguna.info/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
+
     if (response.statusCode == 200) {
+      List<dynamic> fetchedLocations = json.decode(response.body);
+
+      // Remove duplicate LocationID values by using a Set
+      Set<String> seenIds = Set();
+      List<dynamic> uniqueLocations = [];
+
+      for (var location in fetchedLocations) {
+        if (!seenIds.contains(location['LocationID'].toString())) {
+          seenIds.add(location['LocationID'].toString());
+          uniqueLocations.add(location);
+        }
+      }
+
+      // Update the locations list with unique values
       setState(() {
-        locations = json.decode(response.body);
+        locations = uniqueLocations;
       });
+
+      // Call prefillForm after fetching locations to prefill selectedLocation
+      prefillForm();
+    } else {
+      print('Failed to fetch locations');
     }
   }
 
   Future<void> fetchDevicesType(String locationID) async {
-    final response = await http.get(Uri.parse(
-        'http://192.168.252.28/Datatable/Form/get_devices_type.php?location_id=$locationID'));
+    final response = await http.get(
+      Uri.parse(
+          'https://indoguna.info/Datatable/Form/get_devices_type.php?location_id=$locationID'),
+    );
 
     if (response.statusCode == 200) {
-      print(response.body); // Debugging line to check the response
       setState(() {
         devicesType = json.decode(response.body);
       });
+
+      // Debugging: Periksa data devicesType
+      print('Devices Type fetched for Location ID $locationID: $devicesType');
     } else {
-      print('Failed to fetch devices type');
+      print('Failed to fetch device types for Location ID $locationID');
     }
   }
 
-  Future<void> fetchDevices(String locationID, String deviceType) async {
-    final response = await http.get(Uri.parse(
-        'http://192.168.252.28/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
-    if (response.statusCode == 200) {
-      setState(() {
-        devices = json.decode(response.body); // Parse device data
-      });
-    } else {
-      print('Failed to fetch devices');
+  Future<void> fetchDevices(String? locationID, String? deviceType) async {
+    // Buat URL dengan parameter opsional
+    final url = Uri.parse(
+        'https://indoguna.info/Datatable/Form/get_devices.php?location_id=${locationID ?? ''}&device_type=${deviceType ?? ''}');
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        try {
+          setState(() {
+            devices =
+                List<Map<String, dynamic>>.from(json.decode(response.body));
+          });
+        } catch (e) {
+          print('Error parsing devices: $e');
+        }
+      } else {
+        print('Failed to fetch devices');
+      }
+    } catch (e) {
+      print('Error fetching devices: $e');
     }
   }
 
   Future<void> fetchCallers(String organizationId) async {
     final response = await http.get(Uri.parse(
-        'http://192.168.252.28/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
+        'https://indoguna.info/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
     if (response.statusCode == 200) {
+      List<dynamic> fetchedCallers = json.decode(response.body);
+
+      // Filter out invalid callers (where EmployeeID or Name is null)
+      fetchedCallers = fetchedCallers.where((caller) {
+        return caller['EmployeeID'] != null && caller['Name'] != null;
+      }).toList();
+
       setState(() {
-        callers = json.decode(response.body);
+        callers = fetchedCallers;
       });
+
+      print('Fetched and valid callers: $callers'); // Debugging log
+      prefillForm(); // Call prefill after fetching callers
+    } else {
+      print('Failed to fetch callers');
     }
   }
 
   Future<void> fetchDepartments(String callerID) async {
-    final response = await http.get(Uri.parse(
-        'http://192.168.252.28/Datatable/Form/get_department.php?CallerID=$callerID'));
+    final response = await http.get(
+      Uri.parse(
+          'https://indoguna.info/Datatable/Form/get_department.php?CallerID=$callerID'),
+    );
+
     if (response.statusCode == 200) {
       setState(() {
         departments = json.decode(response.body);
       });
+
+      print('Fetched departments for Caller ID $callerID: $departments');
+    } else {
+      print('Failed to fetch departments for Caller ID $callerID');
     }
   }
 
   Future<void> fetchServices() async {
     final response = await http
-        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_service.php'));
+        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_service.php'));
     if (response.statusCode == 200) {
       setState(() {
         services = json.decode(response.body);
@@ -146,7 +251,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   Future<void> fetchWorkers() async {
     final response = await http
-        .get(Uri.parse('http://192.168.252.28/Datatable/Form/get_worker.php'));
+        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_worker.php'));
     if (response.statusCode == 200) {
       setState(() {
         workers = json.decode(response.body);
@@ -155,6 +260,33 @@ class _TaskFormPageState extends State<TaskFormPage> {
   }
 
   Future<void> submitTask() async {
+    if (selectedOrganization == null ||
+        selectedLocation == null ||
+        selectedCaller == null ||
+        selectedDepartment == null ||
+        selectedDeviceType == null ||
+        selectedDevice == null ||
+        selectedService == null ||
+        selectedImpact == null ||
+        selectedWorkerLogin == null ||
+        selectedDate == null) {
+      // Show a warning message
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Incomplete Form"),
+          content: Text("Please fill out all fields before submitting."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     // Ambil login dari SharedPreferences
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     String? login =
@@ -192,7 +324,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
     // Lakukan POST request ke server
     final response = await http.post(
-      Uri.parse('http://192.168.252.28/Datatable/Form/submit.php'),
+      Uri.parse('https://indoguna.info/Datatable/Form/submit.php'),
       body: data,
     );
 
@@ -254,15 +386,11 @@ class _TaskFormPageState extends State<TaskFormPage> {
                     onChanged: (value) {
                       setState(() {
                         selectedOrganization = value as String?;
-                        selectedLocation =
-                            null; // Reset location when organization changes
-                        selectedCaller =
-                            null; // Reset caller when organization changes
-                        selectedDepartment =
-                            null; // Reset department when organization changes
+                        selectedLocation = null;
+                        selectedCaller = null;
+                        selectedDepartment = null;
 
-                        locations
-                            .clear(); // Clear location list when organization changes
+                        locations.clear();
                         departments.clear();
 
                         if (selectedOrganization != null) {
@@ -273,150 +401,223 @@ class _TaskFormPageState extends State<TaskFormPage> {
                     },
                   ),
                 ),
-                SizedBox(height: 10),
-                // Dropdown for Location
                 Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
+                  child: DropdownButtonFormField<String>(
                     isExpanded: true,
                     hint: Text('Select Location'),
-                    value: selectedLocation,
+                    value: selectedLocation, // Nilai default
                     items: locations.map((location) {
-                      return DropdownMenuItem(
-                        value: location['LocationID'],
-                        child: Text(location['Name']),
+                      return DropdownMenuItem<String>(
+                        value: location['LocationID']
+                            .toString(), // Gunakan ID Lokasi
+                        child: Text(location['Name']), // Tampilkan nama lokasi
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedLocation = value as String?;
-                        selectedDepartment = null;
+                    onChanged: (groupId != null && groupId! > 3)
+                        ? null // Nonaktifkan dropdown untuk group_id > 3
+                        : (value) {
+                            setState(() {
+                              selectedLocation =
+                                  value; // Update lokasi yang dipilih
+                              selectedDeviceType =
+                                  null; // Reset device type saat lokasi berubah
+                              devicesType
+                                  .clear(); // Kosongkan daftar device type
+                            });
 
-                        departments.clear();
-                        devicesType.clear();
-                        devices.clear();
-
-                        if (selectedLocation != null) {
-                          fetchDevicesType(selectedLocation!);
-                        }
-                        if (selectedLocation != null &&
-                            selectedDeviceType != null) {
-                          fetchDevices(selectedLocation!, selectedDeviceType!);
-                        }
-                      });
+                            if (selectedLocation != null) {
+                              fetchDevicesType(
+                                  selectedLocation!); // Fetch device type
+                            }
+                          },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a location';
+                      }
+                      return null;
                     },
                   ),
                 ),
+
                 SizedBox(height: 10),
-                // Dropdown for Caller
+
                 Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
+                  child: DropdownButtonFormField<String>(
                     isExpanded: true,
                     hint: Text('Select Your Name'),
-                    value: selectedCaller,
+                    value: selectedCaller, // Nilai default
                     items: callers.map((caller) {
-                      return DropdownMenuItem(
-                        value: caller['EmployeeID'],
-                        child: Text(caller['Name']),
+                      return DropdownMenuItem<String>(
+                        value: caller['EmployeeID'], // Gunakan EmployeeID
+                        child: Text(caller['Name']), // Tampilkan nama karyawan
                       );
                     }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedCaller = value as String?;
-                        fetchDepartments(selectedCaller!);
-                      });
-                    },
-                  ),
-                ),
-                SizedBox(height: 10),
-                // Dropdown for Department
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
-                    isExpanded: true,
-                    hint: Text('Select Department'),
-                    value: selectedDepartment,
-                    items: departments.map((department) {
-                      return DropdownMenuItem(
-                        value: department['Department'],
-                        child: Text(department['Department']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDepartment = value as String?;
-                      });
-                    },
-                  ),
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
-                    isExpanded: true,
-                    hint: Text('Select Device Type'),
-                    value: selectedDeviceType,
-                    items: devicesType.map((device) {
-                      return DropdownMenuItem(
-                        value: device[
-                            'device_type'], // Pastikan field ini ada di JSON
-                        child: Text(
-                            device['device_type']), // Ditampilkan sebagai teks
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDeviceType = value as String?;
-                        if (selectedLocation != null &&
-                            selectedDeviceType != null) {
-                          fetchDevices(selectedLocation!, selectedDeviceType!);
-                        }
-                      });
-                    },
-                  ),
-                ),
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
-                    isExpanded: true,
-                    hint: Text('Select Devices'),
-                    value: selectedDevice,
-                    items: devices.map((device) {
-                      return DropdownMenuItem(
-                        value: device['id']
-                            .toString(), // Convert device ID to String
-                        child: Text(device['name']), // Display device name
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDevice = value as String?; // Keep it as String?
-                      });
+                    onChanged: (groupId != null && groupId! > 3)
+                        ? null // Nonaktifkan dropdown untuk group_id > 3
+                        : (value) {
+                            setState(() {
+                              selectedCaller =
+                                  value; // Update caller yang dipilih
+                              selectedDepartment =
+                                  null; // Reset department saat caller berubah
+                              departments
+                                  .clear(); // Kosongkan daftar department
+                            });
+
+                            if (selectedCaller != null) {
+                              fetchDepartments(
+                                  selectedCaller!); // Fetch departments
+                            }
+                          },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a name';
+                      }
+                      return null;
                     },
                   ),
                 ),
 
+                SizedBox(height: 10),
+
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    hint: Text('Select Department'),
+                    value: selectedDepartment, // Nilai default
+                    items: departments.map((department) {
+                      return DropdownMenuItem<String>(
+                        value: department[
+                            'Department'], // Gunakan nama department sebagai value
+                        child: Text(department[
+                            'Department']), // Tampilkan nama department
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDepartment =
+                            value; // Update department yang dipilih
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a department';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                SizedBox(height: 10),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    hint: Text('Select Device Type'),
+                    value: selectedDeviceType, // Nilai default
+                    items: devicesType.map((device) {
+                      return DropdownMenuItem<String>(
+                        value:
+                            device['device_type'], // Gunakan nilai device_type
+                        child: Text(device[
+                            'device_type']), // Tampilkan device_type di UI
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDeviceType =
+                            value; // Update selected device type
+                        selectedDevice = null; // Reset selected device
+                      });
+
+                      if (selectedLocation != null &&
+                          selectedDeviceType != null) {
+                        fetchDevices(selectedLocation!,
+                            selectedDeviceType!); // Fetch devices
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select a device type';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  child: DropdownSearch<String>(
+                    popupProps: PopupProps.menu(
+                      showSearchBox: true, // Aktifkan fitur pencarian
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          labelText: 'Search Devices', // Label untuk search bar
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                      ),
+                    ),
+                    items: devices
+                        .map((device) => device['name'] as String)
+                        .toList(),
+                    selectedItem: selectedDevice != null
+                        ? devices.firstWhere(
+                            (device) =>
+                                device['id'].toString() == selectedDevice,
+                            orElse: () => {'name': null},
+                          )['name']
+                        : null,
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: 'Select Devices', // Label dropdown utama
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDevice = devices
+                            .firstWhere(
+                                (device) => device['name'] == value)['id']
+                            .toString();
+                      });
+                    },
+                  ),
+                ),
                 SizedBox(height: 10),
                 // Dropdown for Service
                 Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
-                    isExpanded: true,
-                    alignment: Alignment.centerLeft,
-                    hint: Text('Select Service'),
-                    value: selectedService,
-                    items: services.map((service) {
-                      return DropdownMenuItem(
-                        value: service['ServiceID'],
-                        child: Text(
-                          service['Name'],
-                          overflow: TextOverflow.ellipsis,
+                  child: DropdownSearch<dynamic>(
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: 'Select Service',
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
+                    items: services, // Tetap menggunakan List<dynamic>
+                    itemAsString: (dynamic item) =>
+                        item['Name'] ?? '', // Casting saat mengambil 'Name'
+                    popupProps: PopupProps.menu(
+                      showSearchBox: true,
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
                     onChanged: (value) {
                       setState(() {
-                        selectedService = value as String?;
+                        selectedService = value?[
+                            'ServiceID']; // Casting saat mengambil 'ServiceID'
                       });
                     },
                   ),
@@ -450,23 +651,40 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 // Dropdown for Worker
                 Container(
                   width: MediaQuery.of(context).size.width * 0.9,
-                  child: DropdownButtonFormField(
-                    isExpanded: true,
-                    hint: Text('Select Worker'),
-                    value: workers.any(
+                  child: DropdownSearch<dynamic>(
+                    dropdownDecoratorProps: DropDownDecoratorProps(
+                      dropdownSearchDecoration: InputDecoration(
+                        labelText: 'Select Worker',
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    items: workers, // Tetap menggunakan List<dynamic>
+                    itemAsString: (dynamic item) =>
+                        item['name'] ?? '', // Tampilkan nama worker
+                    selectedItem: workers.any(
                             (worker) => worker['login'] == selectedWorkerLogin)
-                        ? selectedWorkerLogin
-                        : null, // Ensure the initial value is valid or null
-                    items: workers.map((worker) {
-                      return DropdownMenuItem(
-                        value: worker['login'], // Use login as the value
-                        child: Text(worker['name']), // Display the name
-                      );
-                    }).toList(),
+                        ? workers.firstWhere(
+                            (worker) => worker['login'] == selectedWorkerLogin)
+                        : null, // Validasi item yang dipilih
+                    popupProps: PopupProps.menu(
+                      showSearchBox: true,
+                      searchFieldProps: TextFieldProps(
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ), 
+                        ),
+                      ),
+                    ),
                     onChanged: (value) {
                       setState(() {
                         selectedWorkerLogin =
-                            value as String?; // Save login to be submitted
+                            value?['login']; // Simpan login worker
                       });
                     },
                   ),

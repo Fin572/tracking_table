@@ -41,7 +41,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
   Future<void> fetchDevices() async {
     try {
       final url =
-          'http://192.168.252.28/Datatable/get_devices.php?location_id=${widget.locationId}&device_type=${widget.deviceType}&organization_id=${widget.organizationId}';
+          'https://indoguna.info/Datatable/get_devices.php?location_id=${widget.locationId}&device_type=${widget.deviceType}&organization_id=${widget.organizationId}';
       print('Fetching devices from URL: $url');
       final response = await http.get(Uri.parse(url));
 
