@@ -419,16 +419,16 @@ class _TaskFormPageState extends State<TaskFormPage> {
                         : (value) {
                             setState(() {
                               selectedLocation =
-                                  value; // Update lokasi yang dipilih
+                                  value;
                               selectedDeviceType =
-                                  null; // Reset device type saat lokasi berubah
+                                  null; 
                               devicesType
-                                  .clear(); // Kosongkan daftar device type
+                                  .clear(); 
                             });
 
                             if (selectedLocation != null) {
                               fetchDevicesType(
-                                  selectedLocation!); // Fetch device type
+                                  selectedLocation!);
                             }
                           },
                     validator: (value) {
@@ -439,6 +439,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
                     },
                   ),
                 ),
+                
 
                 SizedBox(height: 10),
 
