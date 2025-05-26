@@ -38,7 +38,7 @@ class _HistoryIncidentPageState extends State<HistoryIncidentPage> {
       // Panggil API dengan parameter user_id dan group_id
       final response = await http.post(
         Uri.parse(
-            'https://indoguna.info/Datatable/Form/Fetch/fetch_h_incident.php'),
+            'https://192.168.100.137/Datatable/Form/Fetch/fetch_h_incident.php'),
         body: {
           'user_id': userId,
           'group_id': groupId.toString(),

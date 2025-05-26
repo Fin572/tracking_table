@@ -63,7 +63,7 @@ class _IncidentState extends State<Incident> {
 
     if (userId != null) {
       final response = await http.post(
-        Uri.parse('https://indoguna.info/Datatable/Form/fetchincident.php'),
+        Uri.parse('https://192.168.100.137/Datatable/Form/fetchincident.php'),
         body: {
           'user_id': userId,
           'group_id': widget.groupId.toString(), // Send groupId to the server

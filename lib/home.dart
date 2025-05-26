@@ -125,7 +125,7 @@ class _QRScanPageState extends State<QRScanPage> {
       if (id != null) {
         // Prepare the URL for the request
         final response = await http.get(
-          Uri.parse('https://indoguna.info/Datatable/get_devices.php?id=$id'),
+          Uri.parse('https://192.168.100.137/Datatable/get_devices.php?id=$id'),
         );
 
         if (response.statusCode == 200) {

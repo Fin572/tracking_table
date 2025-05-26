@@ -49,7 +49,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchOrganizations() async {
     final response = await http.get(
-        Uri.parse('https://indoguna.info/Datatable/Form/get_organization.php'));
+        Uri.parse('https://192.168.100.137-/Datatable/Form/get_organization.php'));
     if (response.statusCode == 200) {
       setState(() {
         organizations = json.decode(response.body);
@@ -128,7 +128,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchLocations(String organizationID) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
+        'https://192.168.100.137/Datatable/Form/get_location.php?OrganizationID=$organizationID'));
 
     if (response.statusCode == 200) {
       List<dynamic> fetchedLocations = json.decode(response.body);
@@ -159,7 +159,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   Future<void> fetchDevicesType(String locationID) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/get_devices_type.php?location_id=$locationID'),
+          'https://192.168.100.137/Datatable/Form/get_devices_type.php?location_id=$locationID'),
     );
 
     if (response.statusCode == 200) {
@@ -176,7 +176,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchDevices(String locationID, String deviceType) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
+        'https://192.168.100.137/Datatable/Form/get_devices.php?location_id=$locationID&device_type=$deviceType'));
     if (response.statusCode == 200) {
       setState(() {
         devices = json.decode(response.body); // Parse device data
@@ -188,7 +188,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchCallers(String organizationId) async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
+        'https://192.168.100.137/Datatable/Form/get_caller.php?OrganizationID=$organizationId'));
     if (response.statusCode == 200) {
       List<dynamic> fetchedCallers = json.decode(response.body);
 
@@ -211,7 +211,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
   Future<void> fetchDepartments(String callerID) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/get_department.php?CallerID=$callerID'),
+          'https://192.168.100.137/Datatable/Form/get_department.php?CallerID=$callerID'),
     );
 
     if (response.statusCode == 200) {
@@ -227,7 +227,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchServices() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_service.php'));
+        .get(Uri.parse('https://192.168.100.137/Datatable/Form/get_service.php'));
     if (response.statusCode == 200) {
       setState(() {
         services = json.decode(response.body);
@@ -237,7 +237,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
   Future<void> fetchWorkers() async {
     final response = await http
-        .get(Uri.parse('https://indoguna.info/Datatable/Form/get_worker.php'));
+        .get(Uri.parse('https://192.168.100.137/Datatable/Form/get_worker.php'));
     if (response.statusCode == 200) {
       setState(() {
         workers = json.decode(response.body);
@@ -311,7 +311,7 @@ class _IncidentTaskFormPageState extends State<IncidentTaskFormPage> {
 
     // Lakukan POST request ke server
     final response = await http.post(
-      Uri.parse('https://indoguna.info/Datatable/Form/submit_incident.php'),
+      Uri.parse('https://192.168.100.137/Datatable/Form/submit_incident.php'),
       body: data,
     );
 

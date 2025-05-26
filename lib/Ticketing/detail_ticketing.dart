@@ -23,7 +23,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> fetchStatuses() async {
     final url = Uri.parse(
-        'https://indoguna.info/Datatable/Form/Fetch/fetch_status.php'); // Sesuaikan URL
+        'https://192.168.100.137/Datatable/Form/Fetch/fetch_status.php'); // Sesuaikan URL
     final response = await http.get(url);
 
     if (response.statusCode == 200) {
@@ -46,7 +46,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> saveStatus() async {
     final url = Uri.parse(
-        'https://indoguna.info/Datatable/Form/Fetch/status.php'); // Sesuaikan dengan URL server
+        'https://192.168.100.137/Datatable/Form/Fetch/status.php'); // Sesuaikan dengan URL server
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -82,7 +82,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchCallerName(String callerId) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
+          'https://192.168.100.137/Datatable/Form/Fetch/fetch_callers.php?caller=$callerId'),
     );
 
     if (response.statusCode == 200) {
@@ -96,7 +96,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchOrganizationName(String organizationId) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
+          'https://192.168.100.137/Datatable/Form/Fetch/fetch_organization.php?organization=$organizationId'),
     );
 
     if (response.statusCode == 200) {
@@ -128,7 +128,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchLocationName(String locationId) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
+          'https://192.168.100.137/Datatable/Form/Fetch/fetch_location.php?location=$locationId'),
     );
 
     if (response.statusCode == 200) {
@@ -142,7 +142,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchServiceName(String smService) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
+          'https://192.168.100.137/Datatable/Form/Fetch/fetch_service.php?service=$smService'),
     );
 
     if (response.statusCode == 200) {
@@ -156,7 +156,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
   Future<String> fetchDeviceName(String deviceId) async {
     final response = await http.get(
       Uri.parse(
-          'https://indoguna.info/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
+          'https://192.168.100.137/Datatable/Form/Fetch/fetch_device.php?device=$deviceId'),
     );
 
     if (response.statusCode == 200) {
@@ -169,7 +169,7 @@ class _DetailTicketingPageState extends State<DetailTicketingPage> {
 
   Future<void> deleteData() async {
     final url = Uri.parse(
-        'https://indoguna.info/Datatable/Form/Fetch/delete_form.php'); // Sesuaikan URL API
+        'https://192.168.100.137/Datatable/Form/Fetch/delete_form.php'); // Sesuaikan URL API
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},

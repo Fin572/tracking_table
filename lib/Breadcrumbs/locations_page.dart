@@ -28,7 +28,7 @@ class _LocationsPageState extends State<LocationsPage> {
 
   Future<void> fetchLocations() async {
     final response = await http.get(Uri.parse(
-        'https://indoguna.info/Datatable/get_locations.php?organization_id=${widget.organizationId}'));
+        'https://192.168.100.137/Datatable/get_locations.php?organization_id=${widget.organizationId}'));
 
     if (response.statusCode == 200) {
       if (mounted) {
